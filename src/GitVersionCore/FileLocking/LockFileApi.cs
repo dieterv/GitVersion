@@ -75,7 +75,7 @@ namespace GitVersion.FileLocking
             return fileStream;
         }
 
-        private bool waitUntilAcquired(string filePath, out FileStream? fileStream, FileMode fileMode,
+        private bool WaitUntilAcquired(string filePath, out FileStream? fileStream, FileMode fileMode,
             FileAccess fileAccess, FileShare fileShare, int timeoutInMilliseconds, bool throwOnTimeout)
         {
             FileStream? spinningFileStream = null;
@@ -98,10 +98,10 @@ namespace GitVersion.FileLocking
             return false;
         }
 
-        private FileStream? waitUntilAcquired(string filePath, FileMode fileMode,
+        private FileStream? WaitUntilAcquired(string filePath, FileMode fileMode,
             FileAccess fileAccess, FileShare fileShare, int timeoutInMilliseconds, bool noThrowOnTimeout)
         {
-            waitUntilAcquired(filePath, out var fileStream, fileMode, fileAccess, fileShare, timeoutInMilliseconds, !noThrowOnTimeout);
+            WaitUntilAcquired(filePath, out var fileStream, fileMode, fileAccess, fileShare, timeoutInMilliseconds, !noThrowOnTimeout);
             return fileStream;
         }
 
@@ -119,7 +119,7 @@ namespace GitVersion.FileLocking
             FileAccess fileAccess = DefaultFileAccess, FileShare fileShare = DefaultFileShare, bool throwOnTimeout = false)
         {
             var timeoutInMilliseconds = DefaultTimeoutInMilliseconds;
-            return waitUntilAcquired(filePath, out fileStream, fileMode, fileAccess, fileShare, timeoutInMilliseconds, throwOnTimeout);
+            return WaitUntilAcquired(filePath, out fileStream, fileMode, fileAccess, fileShare, timeoutInMilliseconds, throwOnTimeout);
         }
 
         /// <summary>
@@ -135,7 +135,7 @@ namespace GitVersion.FileLocking
             FileAccess fileAccess = DefaultFileAccess, FileShare fileShare = DefaultFileShare, bool noThrowOnTimeout = false)
         {
             var timeoutInMilliseconds = DefaultTimeoutInMilliseconds;
-            return waitUntilAcquired(filePath, fileMode, fileAccess, fileShare, timeoutInMilliseconds, noThrowOnTimeout);
+            return WaitUntilAcquired(filePath, fileMode, fileAccess, fileShare, timeoutInMilliseconds, noThrowOnTimeout);
         }
 
         /// <summary>
@@ -151,7 +151,7 @@ namespace GitVersion.FileLocking
         /// <returns>If true the lock acquirement was successful.</returns>
         public bool WaitUntilAcquired(string filePath, int timeoutInMilliseconds, out FileStream? fileStream, FileMode fileMode = DefaultFileMode,
             FileAccess fileAccess = DefaultFileAccess, FileShare fileShare = DefaultFileShare, bool throwOnTimeout = false) =>
-            waitUntilAcquired(filePath, out fileStream, fileMode, fileAccess, fileShare, timeoutInMilliseconds, throwOnTimeout);
+            WaitUntilAcquired(filePath, out fileStream, fileMode, fileAccess, fileShare, timeoutInMilliseconds, throwOnTimeout);
 
         /// <summary>
         /// Wait until file gets acquired lock but only as long the file stream is opened.
@@ -165,7 +165,7 @@ namespace GitVersion.FileLocking
         /// <returns>If not null the lock acquirement was successful.</returns>
         public FileStream? WaitUntilAcquired(string filePath, int timeoutInMilliseconds, FileMode fileMode = DefaultFileMode,
             FileAccess fileAccess = DefaultFileAccess, FileShare fileShare = DefaultFileShare, bool noThrowOnTimeout = false) =>
-            waitUntilAcquired(filePath, fileMode, fileAccess, fileShare, timeoutInMilliseconds, noThrowOnTimeout);
+            WaitUntilAcquired(filePath, fileMode, fileAccess, fileShare, timeoutInMilliseconds, noThrowOnTimeout);
 
         /// <summary>
         /// Wait until file gets acquired lock but only as long the file stream is opened.
@@ -182,7 +182,7 @@ namespace GitVersion.FileLocking
             FileAccess fileAccess = DefaultFileAccess, FileShare fileShare = DefaultFileShare, bool throwOnTimeout = false)
         {
             var timeoutInMilliseconds = Convert.ToInt32(timeout.TotalMilliseconds);
-            return waitUntilAcquired(filePath, out fileStream, fileMode, fileAccess, fileShare, timeoutInMilliseconds, throwOnTimeout);
+            return WaitUntilAcquired(filePath, out fileStream, fileMode, fileAccess, fileShare, timeoutInMilliseconds, throwOnTimeout);
         }
 
         /// <summary>
@@ -199,7 +199,7 @@ namespace GitVersion.FileLocking
             FileAccess fileAccess = DefaultFileAccess, FileShare fileShare = DefaultFileShare, bool noThrowOnTimeout = false)
         {
             var timeoutInMilliseconds = Convert.ToInt32(timeout.TotalMilliseconds);
-            return waitUntilAcquired(filePath, fileMode, fileAccess, fileShare, timeoutInMilliseconds, noThrowOnTimeout);
+            return WaitUntilAcquired(filePath, fileMode, fileAccess, fileShare, timeoutInMilliseconds, noThrowOnTimeout);
         }
     }
 }
