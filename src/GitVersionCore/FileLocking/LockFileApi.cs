@@ -38,6 +38,10 @@ namespace GitVersion.FileLocking
         {
             filePath = filePath ?? throw new ArgumentNullException(nameof(filePath));
 
+            // Ensure gitversion_cache directory exists
+            var directoryName = Path.GetDirectoryName(filePath);
+            Directory.CreateDirectory(directoryName);
+
             try
             {
                 fileStream = fileSystem.Open(filePath, fileMode, fileAccess, fileShare);
