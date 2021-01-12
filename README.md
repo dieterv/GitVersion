@@ -1,15 +1,11 @@
-<h1>
-    <img src="docs/input/docs/img/package_icon.svg" alt="Tree" height="100">
-    GitVersion
-</h1>
+![GitVersion – From git log to SemVer in no time][banner]
 
-Versioning when using git, solved. GitVersion looks at your git history and
-works out the [semantic version][semver] of the commit being built.
+Versioning when using Git, solved. GitVersion looks at your git history and
+works out the [Semantic Version][semver] of the commit being built.
 
 [![Build status][appveyor-badge]][appveyor]
 [![Build status][azure-pipeline-badge]][azure-pipeline]
 [![Build status][github-actions-badge]][github-actions]
-
 [![codecov][codecov-badge]][codecov]
 [![Gitter][gitter-badge]][gitter]
 
@@ -19,7 +15,8 @@ works out the [semantic version][semver] of the commit being built.
 | **GitVersion.Portable**    |                     [![Chocolatey][choco-badge]][choco]            |
 | **GitVersion.Tool**        |                           [![NuGet][gvgt-badge]][gvgt]             |
 | **GitVersion.CommandLine** |                           [![NuGet][gvcl-badge]][gvcl]             |
-| **GitVersionTask**         |                            [![NuGet][gvt-badge]][gvt]              |
+| **GitVersion.MsBuild**     |                            [![NuGet][gvt-badge]][gvt]              |
+| **Homebrew**               |                        [![homebrew][brew-badge]][brew]             |
 | **Azure Pipeline Task**    | [![Azure Pipeline Task][az-pipeline-task-badge]][az-pipeline-task] |
 | **Github Action**          |             [![Github Action][gh-actions-badge]][gh-actions]       |
 | **Docker**                 |               [![Docker Pulls][dockerhub-badge]][dockerhub]        |
@@ -27,12 +24,6 @@ works out the [semantic version][semver] of the commit being built.
 ## Compatibility
 
 GitVersion works on Windows, Linux, and Mac.
-
-Tip: If you get `System.TypeInitializationException: The type initializer for
-'LibGit2Sharp.Core.NativeMethods' threw an exception. --->
-System.DllNotFoundException: lib/linux/x86_64/libgit2-baa87df.so` in versions prior to 5.0.0
-
-You likely need to install `libcurl3`. Run `sudo apt-get install libcurl3`
 
 ## Quick Links
 
@@ -77,20 +68,20 @@ from The Noun Project.
 [gh-rel-badge]:                    https://img.shields.io/github/release/gittools/gitversion.svg?logo=github
 [choco]:                           https://chocolatey.org/packages/GitVersion.Portable
 [choco-badge]:                     https://img.shields.io/chocolatey/v/gitversion.portable.svg?logo=nuget
-[gvt]:                             https://www.nuget.org/packages/GitVersionTask
-[gvt-badge]:                       https://img.shields.io/nuget/v/GitVersionTask.svg?logo=nuget
+[gvt]:                             https://www.nuget.org/packages/GitVersion.MsBuild
+[gvt-badge]:                       https://img.shields.io/nuget/v/GitVersion.MsBuild.svg?logo=nuget
 [gvcl]:                            https://www.nuget.org/packages/GitVersion.CommandLine
 [gvcl-badge]:                      https://img.shields.io/nuget/v/GitVersion.CommandLine.svg?logo=nuget
 [gvgt]:                            https://www.nuget.org/packages/GitVersion.Tool
 [gvgt-badge]:                      https://img.shields.io/nuget/v/GitVersion.Tool.svg?logo=nuget
-[brew]:                            http://brew.sh/
+[brew]:                            https://formulae.brew.sh/formula/gitversion
 [brew-badge]:                      https://img.shields.io/homebrew/v/gitversion.svg?logo=homebrew
 [dockerhub]:                       https://hub.docker.com/r/gittools/gitversion/
 [dockerhub-badge]:                 https://img.shields.io/docker/pulls/gittools/gitversion.svg?logo=docker
 [az-pipeline-task]:                https://marketplace.visualstudio.com/items?itemName=gittools.gittools
-[az-pipeline-task-badge]:          https://img.shields.io/badge/marketplace-gittools.gittools-blue?logo=visual-studio
-[gh-actions]:                      https://github.com/marketplace/actions/use-actions
-[gh-actions-badge]:                https://img.shields.io/badge/marketplace-use--actions-blue?logo=github
+[az-pipeline-task-badge]:          https://img.shields.io/badge/marketplace-gittools.gittools-blue?logo=azure-pipelines
+[gh-actions]:                      https://github.com/marketplace/actions/gittools
+[gh-actions-badge]:                https://img.shields.io/badge/marketplace-gittools-blue?logo=github
 [contribute]:                      https://github.com/GitTools/GitVersion/blob/master/CONTRIBUTING.md
 [why]:                             https://gitversion.net/docs/why
 [usage]:                           https://gitversion.net/docs/usage/usage
@@ -98,3 +89,4 @@ from The Noun Project.
 [faq]:                             https://gitversion.net/docs/faq
 [who]:                             https://gitversion.net/docs/who
 [gv-in-action]:                    https://raw.github.com/GitTools/GitVersion/master/docs/input/docs/img/README.png
+[banner]:                          https://github.com/GitTools/graphics/raw/master/GitVersion/banner-1280x640.png

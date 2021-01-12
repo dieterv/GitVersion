@@ -15,6 +15,7 @@ Running `GitVersion.exe` in your repo will show you what is available. For the
   "PreReleaseTag":"beta.1",
   "PreReleaseTagWithDash":"-beta.1",
   "PreReleaseLabel":"beta",
+  "PreReleaseLabelWithDash":"-beta",
   "PreReleaseNumber":1,
   "WeightedPreReleaseNumber":1001,
   "BuildMetaData":1,
@@ -39,7 +40,8 @@ Running `GitVersion.exe` in your repo will show you what is available. For the
   "VersionSourceSha":"950d2f830f5a2af12a6779a48d20dcbb02351f25",
   "CommitsSinceVersionSource":1,
   "CommitsSinceVersionSourcePadded":"0001",
-  "CommitDate":"2014-03-06"
+  "CommitDate":"2014-03-06",
+  "UncommittedChanges": 0
 }
 ```
 

@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using System.Linq;
 using GitTools.Testing;
 using GitVersion;
 using GitVersion.BuildAgents;
@@ -17,12 +19,19 @@ namespace GitVersionCore.Tests
 {
     public static class GitToolsTestingExtensions
     {
+        public static IBranch FindBranch(this IGitRepository repository, string branchName)
+        {
+            return repository.Branches.FirstOrDefault(x => x.NameWithoutRemote() == branchName);
+        }
+
+        public static void DumpGraph(this IGitRepository repository, Action<string> writer = null, int? maxCommits = null)
+        {
+            GitExtensions.DumpGraph(repository.Path, writer, maxCommits);
+        }
+
         public static VersionVariables GetVersion(this RepositoryFixtureBase fixture, Config configuration = null, IRepository repository = null, string commitId = null, bool onlyTrackedBranches = true, string branch = null)
         {
-            if (configuration == null)
-            {
-                configuration = new ConfigurationBuilder().Build();
-            }
+            configuration ??= new ConfigurationBuilder().Build();
 
             repository ??= fixture.Repository;
 
@@ -51,17 +60,26 @@ namespace GitVersionCore.Tests
 
             try
             {
-                var executeGitVersion = nextVersionCalculator.FindVersion();
-                var variables = variableProvider.GetVariablesFor(executeGitVersion, context.Configuration, context.IsCurrentCommitTagged);
+                var semanticVersion = nextVersionCalculator.FindVersion();
+                var variables = variableProvider.GetVariablesFor(semanticVersion, context.Configuration, context.IsCurrentCommitTagged);
 
                 return variables;
             }
             catch (Exception)
             {
                 Console.WriteLine("Test failing, dumping repository graph");
-                repository.DumpGraph();
+                new GitRepository(repository).DumpGraph();
                 throw;
             }
+        }
+
+        public static void WriteVersionVariables(this RepositoryFixtureBase fixture, string versionFile)
+        {
+            var versionInfo = fixture.GetVersion();
+
+            using var stream = File.Open(versionFile, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite);
+            using var writer = new StreamWriter(stream);
+            writer.Write(versionInfo.ToString());
         }
 
         public static void AssertFullSemver(this RepositoryFixtureBase fixture, string fullSemver, Config configuration = null, IRepository repository = null, string commitId = null, bool onlyTrackedBranches = true, string targetBranch = null)
@@ -77,7 +95,7 @@ namespace GitVersionCore.Tests
             }
             catch (Exception)
             {
-                (repository ?? fixture.Repository).DumpGraph();
+                new GitRepository(repository ?? fixture.Repository).DumpGraph();
                 throw;
             }
             if (commitId == null)

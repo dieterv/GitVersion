@@ -3,7 +3,6 @@ using System.IO;
 using System.Linq;
 using GitVersion.Extensions;
 using GitVersion.Logging;
-using LibGit2Sharp;
 using Microsoft.Extensions.Options;
 
 namespace GitVersion
@@ -12,16 +11,21 @@ namespace GitVersion
     {
         private readonly ILog log;
         private readonly IEnvironment environment;
+        private readonly IGitRepository repository;
         private readonly IOptions<GitVersionOptions> options;
+        private readonly IGitRepositoryInfo repositoryInfo;
         private readonly ICurrentBuildAgent buildAgent;
 
         private const string DefaultRemoteName = "origin";
 
-        public GitPreparer(ILog log, IEnvironment environment, ICurrentBuildAgent buildAgent, IOptions<GitVersionOptions> options)
+        public GitPreparer(ILog log, IEnvironment environment, ICurrentBuildAgent buildAgent,
+            IOptions<GitVersionOptions> options, IGitRepository repository, IGitRepositoryInfo repositoryInfo)
         {
             this.log = log ?? throw new ArgumentNullException(nameof(log));
             this.environment = environment ?? throw new ArgumentNullException(nameof(environment));
+            this.repository = repository ?? throw new ArgumentNullException(nameof(repository));
             this.options = options ?? throw new ArgumentNullException(nameof(options));
+            this.repositoryInfo = repositoryInfo ?? throw new ArgumentNullException(nameof(repositoryInfo));
             this.buildAgent = buildAgent;
         }
 
@@ -34,8 +38,8 @@ namespace GitVersion
             var shouldCleanUpRemotes = buildAgent != null && buildAgent.ShouldCleanUpRemotes();
             var currentBranch = ResolveCurrentBranch();
 
-            var dotGitDirectory = gitVersionOptions.DotGitDirectory;
-            var projectRoot = gitVersionOptions.ProjectRootDirectory;
+            var dotGitDirectory = repositoryInfo.DotGitDirectory;
+            var projectRoot = repositoryInfo.ProjectRootDirectory;
 
             log.Info($"Project root is: {projectRoot}");
             log.Info($"DotGit directory is: {dotGitDirectory}");
@@ -63,7 +67,7 @@ namespace GitVersion
                         CleanupDuplicateOrigin();
                     }
 
-                    NormalizeGitDirectory(currentBranch, gitVersionOptions.DotGitDirectory, false);
+                    NormalizeGitDirectory(currentBranch, repositoryInfo.DotGitDirectory, false);
                 }
             }
         }
@@ -86,25 +90,7 @@ namespace GitVersion
 
         private void CleanupDuplicateOrigin()
         {
-            var remoteToKeep = DefaultRemoteName;
-            using var repo = new Repository(options.Value.GitRootPath);
-
-            // check that we have a remote that matches defaultRemoteName if not take the first remote
-            if (!repo.Network.Remotes.Any(remote => remote.Name.Equals(DefaultRemoteName, StringComparison.InvariantCultureIgnoreCase)))
-            {
-                remoteToKeep = repo.Network.Remotes.First().Name;
-            }
-
-            var duplicateRepos = repo.Network
-                                     .Remotes
-                                     .Where(remote => !remote.Name.Equals(remoteToKeep, StringComparison.InvariantCultureIgnoreCase))
-                                     .Select(remote => remote.Name);
-
-            // remove all remotes that are considered duplicates
-            foreach (var repoName in duplicateRepos)
-            {
-                repo.Network.Remotes.Remove(repoName);
-            }
+            repository.CleanupDuplicateOrigin(repositoryInfo.GitRootPath, DefaultRemoteName);
         }
 
         private void CreateDynamicRepository(string targetBranch)
@@ -115,15 +101,14 @@ namespace GitVersion
                 throw new Exception("Dynamic Git repositories must have a target branch (/b)");
             }
 
-            var repositoryInfo = gitVersionOptions.RepositoryInfo;
-            var gitDirectory = gitVersionOptions.DynamicGitRepositoryPath;
+            var gitDirectory = repositoryInfo.DynamicGitRepositoryPath;
 
             using (log.IndentLog($"Creating dynamic repository at '{gitDirectory}'"))
             {
                 var authentication = gitVersionOptions.Authentication;
                 if (!Directory.Exists(gitDirectory))
                 {
-                    CloneRepository(repositoryInfo.TargetUrl, gitDirectory, authentication);
+                    CloneRepository(gitVersionOptions.RepositoryInfo.TargetUrl, gitDirectory, authentication);
                 }
                 else
                 {
@@ -144,53 +129,10 @@ namespace GitVersion
 
         private void CloneRepository(string repositoryUrl, string gitDirectory, AuthenticationInfo auth)
         {
-            Credentials credentials = null;
-
-            if (auth != null)
+            using (log.IndentLog($"Cloning repository from url '{repositoryUrl}'"))
             {
-                if (!string.IsNullOrWhiteSpace(auth.Username))
-                {
-                    log.Info($"Setting up credentials using name '{auth.Username}'");
-
-                    credentials = new UsernamePasswordCredentials
-                    {
-                        Username = auth.Username,
-                        Password = auth.Password ?? string.Empty
-                    };
-                }
-            }
-
-            try
-            {
-                using (log.IndentLog($"Cloning repository from url '{repositoryUrl}'"))
-                {
-                    var cloneOptions = new CloneOptions
-                    {
-                        Checkout = false,
-                        CredentialsProvider = (url, usernameFromUrl, types) => credentials
-                    };
-
-                    var returnedPath = Repository.Clone(repositoryUrl, gitDirectory, cloneOptions);
-                    log.Info($"Returned path after repository clone: {returnedPath}");
-                }
-            }
-            catch (LibGit2SharpException ex)
-            {
-                var message = ex.Message;
-                if (message.Contains("401"))
-                {
-                    throw new Exception("Unauthorized: Incorrect username/password");
-                }
-                if (message.Contains("403"))
-                {
-                    throw new Exception("Forbidden: Possibly Incorrect username/password");
-                }
-                if (message.Contains("404"))
-                {
-                    throw new Exception("Not found: The repository was not found");
-                }
-
-                throw new Exception("There was an unknown problem with the Git repository you provided", ex);
+                var returnedPath = repository.Clone(repositoryUrl, gitDirectory, auth);
+                log.Info($"Returned path after repository clone: {returnedPath}");
             }
         }
 
@@ -201,16 +143,14 @@ namespace GitVersion
         private void NormalizeGitDirectory(string gitDirectory, bool noFetch, string currentBranch, bool isDynamicRepository)
         {
             var authentication = options.Value.Authentication;
-            using var repository = new GitRepository(() => gitDirectory);
+            using var repository = this.repository.CreateNew(gitDirectory);
             // Need to ensure the HEAD does not move, this is essentially a BugCheck
             var expectedSha = repository.Head.Tip.Sha;
             var expectedBranchName = repository.Head.CanonicalName;
 
             try
             {
-                var remote = repository.EnsureOnlyOneRemoteIsDefined(log);
-
-                repository.AddMissingRefSpecs(log, remote);
+                var remote = repository.EnsureOnlyOneRemoteIsDefined();
 
                 //If noFetch is enabled, then GitVersion will assume that the git repository is normalized before execution, so that fetching from remotes is not required.
                 if (noFetch)
@@ -219,12 +159,12 @@ namespace GitVersion
                 }
                 else
                 {
-                    log.Info($"Fetching from remote '{remote.Name}' using the following refspecs: {string.Join(", ", remote.FetchRefSpecs.Select(r => r.Specification))}.");
-                    repository.Commands.Fetch(remote.Name, new string[0], authentication.ToFetchOptions(), null);
+                    log.Info($"Fetching from remote '{remote.Name}' using the following refspecs: {remote.RefSpecs}.");
+                    repository.Fetch(remote.Name, new string[0], authentication, null);
                 }
 
-                repository.EnsureLocalBranchExistsForCurrentBranch(log, remote, currentBranch);
-                repository.CreateOrUpdateLocalBranchesFromRemoteTrackingOnes(log, remote.Name);
+                EnsureLocalBranchExistsForCurrentBranch(repository, log, remote, currentBranch);
+                CreateOrUpdateLocalBranchesFromRemoteTrackingOnes(repository, log, remote.Name);
 
                 // Bug fix for https://github.com/GitTools/GitVersion/issues/1754, head maybe have been changed
                 // if this is a dynamic repository. But only allow this in case the branches are different (branch switch)
@@ -241,7 +181,7 @@ namespace GitVersion
 
                 var headSha = repository.Refs.Head.TargetIdentifier;
 
-                if (!repository.Info.IsHeadDetached)
+                if (!repository.IsHeadDetached)
                 {
                     log.Info($"HEAD points at branch '{headSha}'.");
                     return;
@@ -261,7 +201,7 @@ namespace GitVersion
                 if (matchingCurrentBranch != null)
                 {
                     log.Info($"Checking out local branch '{currentBranch}'.");
-                    repository.Commands.Checkout(matchingCurrentBranch);
+                    repository.Checkout(matchingCurrentBranch);
                 }
                 else if (localBranchesWhereCommitShaIsHead.Count > 1)
                 {
@@ -274,7 +214,7 @@ namespace GitVersion
                     if (master != null)
                     {
                         log.Warning("Because one of the branches is 'master', will build master." + moveBranchMsg);
-                        repository.Commands.Checkout(master);
+                        repository.Checkout(master);
                     }
                     else
                     {
@@ -283,7 +223,7 @@ namespace GitVersion
                         {
                             var branchWithoutSeparator = branchesWithoutSeparators[0];
                             log.Warning($"Choosing {branchWithoutSeparator.CanonicalName} as it is the only branch without / or - in it. " + moveBranchMsg);
-                            repository.Commands.Checkout(branchWithoutSeparator);
+                            repository.Checkout(branchWithoutSeparator);
                         }
                         else
                         {
@@ -294,12 +234,12 @@ namespace GitVersion
                 else if (localBranchesWhereCommitShaIsHead.Count == 0)
                 {
                     log.Info($"No local branch pointing at the commit '{headSha}'. Fake branch needs to be created.");
-                    repository.CreateFakeBranchPointingAtThePullRequestTip(log, authentication);
+                    repository.CreateBranchForPullRequestBranch(authentication);
                 }
                 else
                 {
                     log.Info($"Checking out local branch 'refs/heads/{localBranchesWhereCommitShaIsHead[0].FriendlyName}'.");
-                    repository.Commands.Checkout(repository.Branches[localBranchesWhereCommitShaIsHead[0].FriendlyName]);
+                    repository.Checkout(repository.Branches[localBranchesWhereCommitShaIsHead[0].FriendlyName]);
                 }
             }
             finally
@@ -313,10 +253,100 @@ namespace GitVersion
 
 To disable this error set an environmental variable called IGNORE_NORMALISATION_GIT_HEAD_MOVE to 1
 
-Please run `git {LibGitExtensions.CreateGitLogArgs(100)}` and submit it along with your build log (with personal info removed) in a new issue at https://github.com/GitTools/GitVersion");
+Please run `git {GitExtensions.CreateGitLogArgs(100)}` and submit it along with your build log (with personal info removed) in a new issue at https://github.com/GitTools/GitVersion");
                     }
                 }
             }
+        }
+
+        private static void CreateOrUpdateLocalBranchesFromRemoteTrackingOnes(IGitRepository repo, ILog log, string remoteName)
+        {
+            var prefix = $"refs/remotes/{remoteName}/";
+            var remoteHeadCanonicalName = $"{prefix}HEAD";
+            var remoteTrackingReferences = repo.Refs
+                .FromGlob(prefix + "*")
+                .Where(r => !r.CanonicalName.IsEquivalentTo(remoteHeadCanonicalName));
+
+            foreach (var remoteTrackingReference in remoteTrackingReferences)
+            {
+                var remoteTrackingReferenceName = remoteTrackingReference.CanonicalName;
+                var branchName = remoteTrackingReferenceName.Substring(prefix.Length);
+                var localCanonicalName = "refs/heads/" + branchName;
+
+                // We do not want to touch our current branch
+                if (branchName.IsEquivalentTo(repo.Head.FriendlyName)) continue;
+
+                if (repo.Refs.Any(x => x.CanonicalName.IsEquivalentTo(localCanonicalName)))
+                {
+                    var localRef = repo.Refs[localCanonicalName];
+                    if (localRef.DirectReferenceTargetIdentifier == remoteTrackingReference.DirectReferenceTargetIdentifier)
+                    {
+                        log.Info($"Skipping update of '{remoteTrackingReference.CanonicalName}' as it already matches the remote ref.");
+                        continue;
+                    }
+                    var remoteRefTipId = remoteTrackingReference.DirectReferenceTargetId;
+                    log.Info($"Updating local ref '{localRef.CanonicalName}' to point at {remoteRefTipId}.");
+                    repo.Refs.UpdateTarget(localRef, remoteRefTipId);
+                    continue;
+                }
+
+                log.Info($"Creating local branch from remote tracking '{remoteTrackingReference.CanonicalName}'.");
+                repo.Refs.Add(localCanonicalName, remoteTrackingReference.DirectReferenceTargetIdentifier, true);
+
+                var branch = repo.Branches[branchName];
+                repo.Branches.UpdateTrackedBranch(branch, remoteTrackingReferenceName);
+            }
+        }
+
+        private static void EnsureLocalBranchExistsForCurrentBranch(IGitRepository repo, ILog log, IRemote remote, string currentBranch)
+        {
+            if (log is null)
+            {
+                throw new ArgumentNullException(nameof(log));
+            }
+
+            if (remote is null)
+            {
+                throw new ArgumentNullException(nameof(remote));
+            }
+
+            if (string.IsNullOrEmpty(currentBranch)) return;
+
+            var isRef = currentBranch.Contains("refs");
+            var isBranch = currentBranch.Contains("refs/heads");
+            var localCanonicalName = !isRef
+                ? "refs/heads/" + currentBranch
+                : isBranch
+                    ? currentBranch
+                    : currentBranch.Replace("refs/", "refs/heads/");
+
+            var repoTip = repo.Head.Tip;
+
+            // We currently have the rep.Head of the *default* branch, now we need to look up the right one
+            var originCanonicalName = $"{remote.Name}/{currentBranch}";
+            var originBranch = repo.Branches[originCanonicalName];
+            if (originBranch != null)
+            {
+                repoTip = originBranch.Tip;
+            }
+
+            var repoTipId = repoTip.Id;
+
+            if (repo.Branches.All(b => !b.CanonicalName.IsEquivalentTo(localCanonicalName)))
+            {
+                log.Info(isBranch ? $"Creating local branch {localCanonicalName}"
+                    : $"Creating local branch {localCanonicalName} pointing at {repoTipId}");
+                repo.Refs.Add(localCanonicalName, repoTipId.Sha);
+            }
+            else
+            {
+                log.Info(isBranch ? $"Updating local branch {localCanonicalName} to point at {repoTip.Sha}"
+                    : $"Updating local branch {localCanonicalName} to match ref {currentBranch}");
+                var localRef = repo.Refs[localCanonicalName];
+                repo.Refs.UpdateTarget(localRef, repoTipId);
+            }
+
+            repo.Checkout(localCanonicalName);
         }
     }
 }

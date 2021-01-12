@@ -1,5 +1,3 @@
-using LibGit2Sharp;
-
 namespace GitVersion
 {
     /// <summary>
@@ -9,14 +7,14 @@ namespace GitVersion
     {
         public static readonly BranchCommit Empty = new BranchCommit();
 
-        public BranchCommit(Commit commit, Branch branch) : this()
+        public BranchCommit(ICommit commit, IBranch branch) : this()
         {
             Branch = branch;
             Commit = commit;
         }
 
-        public Branch Branch { get; }
-        public Commit Commit { get; }
+        public IBranch Branch { get; }
+        public ICommit Commit { get; }
 
         private bool Equals(BranchCommit other)
         {

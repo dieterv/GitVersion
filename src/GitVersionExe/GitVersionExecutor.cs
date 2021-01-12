@@ -14,23 +14,28 @@ namespace GitVersion
         private readonly IConsole console;
         private readonly IConfigFileLocator configFileLocator;
         private readonly IHelpWriter helpWriter;
+        private readonly IGitRepositoryInfo repositoryInfo;
         private readonly IConfigProvider configProvider;
-        private readonly IGitVersionTool gitVersionTool;
+        private readonly IGitVersionCalculateTool gitVersionCalculateTool;
+        private readonly IGitVersionOutputTool gitVersionOutputTool;
         private readonly IVersionWriter versionWriter;
 
         public GitVersionExecutor(ILog log, IConsole console,
-            IConfigFileLocator configFileLocator, IConfigProvider configProvider, IGitVersionTool gitVersionTool,
-            IVersionWriter versionWriter, IHelpWriter helpWriter)
+            IConfigFileLocator configFileLocator, IConfigProvider configProvider,
+            IGitVersionCalculateTool gitVersionCalculateTool, IGitVersionOutputTool gitVersionOutputTool,
+            IVersionWriter versionWriter, IHelpWriter helpWriter, IGitRepositoryInfo repositoryInfo)
         {
             this.log = log ?? throw new ArgumentNullException(nameof(log));
             this.console = console ?? throw new ArgumentNullException(nameof(console));
             this.configFileLocator = configFileLocator ?? throw new ArgumentNullException(nameof(configFileLocator));
             this.configProvider = configProvider ?? throw new ArgumentNullException(nameof(configFileLocator));
 
-            this.gitVersionTool = gitVersionTool ?? throw new ArgumentNullException(nameof(gitVersionTool));
+            this.gitVersionCalculateTool = gitVersionCalculateTool ?? throw new ArgumentNullException(nameof(gitVersionCalculateTool));
+            this.gitVersionOutputTool = gitVersionOutputTool ?? throw new ArgumentNullException(nameof(gitVersionOutputTool));
 
             this.versionWriter = versionWriter ?? throw new ArgumentNullException(nameof(versionWriter));
             this.helpWriter = helpWriter ?? throw new ArgumentNullException(nameof(helpWriter));
+            this.repositoryInfo = repositoryInfo ?? throw new ArgumentNullException(nameof(repositoryInfo));
         }
 
         public int Execute(GitVersionOptions gitVersionOptions)
@@ -53,11 +58,13 @@ namespace GitVersion
         {
             try
             {
-                var variables = gitVersionTool.CalculateVersionVariables();
+                var variables = gitVersionCalculateTool.CalculateVersionVariables();
 
-                gitVersionTool.OutputVariables(variables);
-                gitVersionTool.UpdateAssemblyInfo(variables);
-                gitVersionTool.UpdateWixVersionFile(variables);
+                var configuration = configProvider.Provide(overrideConfig: gitVersionOptions.ConfigInfo.OverrideConfig);
+
+                gitVersionOutputTool.OutputVariables(variables, configuration.UpdateBuildNumber ?? true);
+                gitVersionOutputTool.UpdateAssemblyInfo(variables);
+                gitVersionOutputTool.UpdateWixVersionFile(variables);
             }
             catch (WarningException exception)
             {
@@ -77,7 +84,7 @@ namespace GitVersion
 
                 try
                 {
-                    LibGitExtensions.DumpGraph(gitVersionOptions.WorkingDirectory, mess => log.Info(mess), 100);
+                    GitExtensions.DumpGraph(gitVersionOptions.WorkingDirectory, mess => log.Info(mess), 100);
                 }
                 catch (Exception dumpGraphException)
                 {
@@ -120,20 +127,13 @@ namespace GitVersion
                 gitVersionOptions.Output.Add(OutputType.BuildServer);
             }
 
-#pragma warning disable CS0612 // Type or member is obsolete
-            if (!string.IsNullOrEmpty(gitVersionOptions.Proj) || !string.IsNullOrEmpty(gitVersionOptions.Exec))
-#pragma warning restore CS0612 // Type or member is obsolete
-            {
-                gitVersionOptions.Output.Add(OutputType.BuildServer);
-            }
-
             ConfigureLogging(gitVersionOptions, log);
 
             var workingDirectory = gitVersionOptions.WorkingDirectory;
             if (gitVersionOptions.Diag)
             {
                 log.Info("Dumping commit graph: ");
-                LibGitExtensions.DumpGraph(workingDirectory, mess => log.Info(mess), 100);
+                GitExtensions.DumpGraph(workingDirectory, mess => log.Info(mess), 100);
             }
 
             if (!Directory.Exists(workingDirectory))
@@ -145,7 +145,7 @@ namespace GitVersion
                 log.Info("Working directory: " + workingDirectory);
             }
 
-            configFileLocator.Verify(gitVersionOptions);
+            configFileLocator.Verify(gitVersionOptions, repositoryInfo);
 
             if (gitVersionOptions.Init)
             {

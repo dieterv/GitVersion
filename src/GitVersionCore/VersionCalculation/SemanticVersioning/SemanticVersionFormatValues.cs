@@ -28,6 +28,8 @@ namespace GitVersion
 
         public string PreReleaseLabel => semver.PreReleaseTag.HasTag() ? semver.PreReleaseTag.Name : null;
 
+        public string PreReleaseLabelWithDash => semver.PreReleaseTag.HasTag() ? "-" + semver.PreReleaseTag.Name : null;
+
         public string PreReleaseNumber => semver.PreReleaseTag.HasTag() ? semver.PreReleaseTag.Number.ToString() : null;
 
         public string WeightedPreReleaseNumber => GetWeightedPreReleaseNumber();
@@ -82,6 +84,8 @@ namespace GitVersion
         public string CommitsSinceVersionSource => semver.BuildMetaData.CommitsSinceVersionSource.ToString(CultureInfo.InvariantCulture);
 
         public string CommitsSinceVersionSourcePadded => semver.BuildMetaData.CommitsSinceVersionSource.ToString(CultureInfo.InvariantCulture).PadLeft(config.CommitsSinceVersionSourcePadding, '0');
+
+        public string UncommittedChanges => semver.BuildMetaData.UncommittedChanges.ToString(CultureInfo.InvariantCulture);
 
         private String GetWeightedPreReleaseNumber()
         {

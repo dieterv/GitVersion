@@ -91,6 +91,24 @@ namespace GitVersionCore.Tests
         }
 
         [TestCase(@"
+<Project Sdk=""Microsoft.NET.Sdk.Razor"">
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+</Project>
+")]
+        [Category(NoMono)]
+        [Description(NoMonoDescription)]
+        public void CanUpdateProjectFileWithRazorClassLibraryProjectFileXml(string xml)
+        {
+            using var projectFileUpdater = new ProjectFileUpdater(log, fileSystem);
+
+            var canUpdate = projectFileUpdater.CanUpdateProjectFile(XElement.Parse(xml));
+
+            canUpdate.ShouldBe(true);
+        }
+
+        [TestCase(@"
 <Project Sdk=""SomeOtherProject.Sdk"">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -334,7 +352,7 @@ namespace GitVersionCore.Tests
             fileSystem = Substitute.For<IFileSystem>();
             var version = new SemanticVersion
             {
-                BuildMetaData = new SemanticVersionBuildMetaData("versionSourceHash", 3, "foo", "hash", "shortHash", DateTimeOffset.Now),
+                BuildMetaData = new SemanticVersionBuildMetaData("versionSourceHash", 3, "foo", "hash", "shortHash", DateTimeOffset.Now, 0),
                 Major = 2,
                 Minor = 3,
                 Patch = 1

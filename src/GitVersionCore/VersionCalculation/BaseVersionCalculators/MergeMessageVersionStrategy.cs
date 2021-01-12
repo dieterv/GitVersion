@@ -5,7 +5,6 @@ using System.Text.RegularExpressions;
 using GitVersion.Configuration;
 using GitVersion.Extensions;
 using GitVersion.Logging;
-using LibGit2Sharp;
 
 namespace GitVersion.VersionCalculation
 {
@@ -50,13 +49,13 @@ namespace GitVersion.VersionCalculation
 
         public static readonly string MergeMessageStrategyPrefix = "Merge message";
 
-        private static bool TryParse(Commit mergeCommit, GitVersionContext context, out MergeMessage mergeMessage)
+        private static bool TryParse(ICommit mergeCommit, GitVersionContext context, out MergeMessage mergeMessage)
         {
             mergeMessage = Inner(mergeCommit, context);
             return mergeMessage != null;
         }
 
-        private static MergeMessage Inner(Commit mergeCommit, GitVersionContext context)
+        private static MergeMessage Inner(ICommit mergeCommit, GitVersionContext context)
         {
             if (mergeCommit.Parents.Count() < 2)
             {

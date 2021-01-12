@@ -4,7 +4,6 @@
         <TargetFramework>netstandard2.0</TargetFramework>
         <RootNamespace>GitVersion</RootNamespace>
         <DocumentationFile>bin\$(Configuration)\GitVersionCore.xml</DocumentationFile>
-        <NoWarn>1591</NoWarn>
 
         <PackageId>GitVersion.Core</PackageId>
         <Title>GitVersion</Title>
@@ -16,8 +15,9 @@
     <ItemGroup>
         <PackageReference Include="System.Net.Requests" Version="4.3.0" />
 
-        <PackageReference Include="LibGit2Sharp" Version="$(PackageVersion_LibGit2Sharp)" />
         <PackageReference Include="JetBrains.Annotations" Version="$(PackageVersion_JetBrainsAnnotations)" PrivateAssets="All" />
+        <PackageReference Include="System.Text.Json" Version="$(PackageVersion_MicrosoftJson)" />
+        <PackageReference Include="System.Text.Encodings.Web" Version="$(PackageVersion_MicrosoftJson)" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(PackageVersion_MicrosoftExtensions)" />
         <PackageReference Include="Microsoft.Extensions.Options" Version="$(PackageVersion_MicrosoftExtensions)" />
         <PackageReference Include="YamlDotNet" Version="$(PackageVersion_YamlDotNet)" />

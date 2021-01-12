@@ -1,11 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using LibGit2Sharp;
+using GitVersion;
 
 namespace GitVersionCore.Tests.Mocks
 {
-    public class MockBranch : Branch, ICollection<Commit>
+    internal class MockBranch : Branch, ICollection<ICommit>
     {
         public MockBranch(string friendlyName)
         {
@@ -23,12 +23,13 @@ namespace GitVersionCore.Tests.Mocks
 
         }
 
-        private readonly MockCommitLog commits = new MockCommitLog();
+        private readonly MockCommitCollection commits = new MockCommitCollection();
         private readonly string friendlyName;
         public override string FriendlyName => friendlyName;
-        public override ICommitLog Commits => commits;
-        public override Commit Tip => commits.First();
+        public override ICommitCollection Commits => commits;
+        public override ICommit Tip => commits.First();
         public override bool IsTracking => true;
+        public override bool IsRemote => false;
 
         public override string CanonicalName { get; }
 
@@ -42,7 +43,7 @@ namespace GitVersionCore.Tests.Mocks
             return ReferenceEquals(this, obj);
         }
 
-        public IEnumerator<Commit> GetEnumerator()
+        public IEnumerator<ICommit> GetEnumerator()
         {
             return commits.GetEnumerator();
         }
@@ -52,7 +53,7 @@ namespace GitVersionCore.Tests.Mocks
             return GetEnumerator();
         }
 
-        public void Add(Commit item)
+        public void Add(ICommit item)
         {
             commits.Add(item);
         }
@@ -62,17 +63,17 @@ namespace GitVersionCore.Tests.Mocks
             commits.Clear();
         }
 
-        public bool Contains(Commit item)
+        public bool Contains(ICommit item)
         {
             return commits.Contains(item);
         }
 
-        public void CopyTo(Commit[] array, int arrayIndex)
+        public void CopyTo(ICommit[] array, int arrayIndex)
         {
             commits.CopyTo(array, arrayIndex);
         }
 
-        public bool Remove(Commit item)
+        public bool Remove(ICommit item)
         {
             return commits.Remove(item);
         }

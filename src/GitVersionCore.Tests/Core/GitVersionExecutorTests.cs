@@ -79,8 +79,8 @@ namespace GitVersionCore.Tests
         }
 
         [Test]
-        [Category("NoMono")]
-        [Description("LibGit2Sharp fails here when running under Mono")]
+        [Category(NoMono)]
+        [Description(NoMonoDescription)]
         public void CacheKeyForWorktree()
         {
             using var fixture = new EmptyRepositoryFixture();
@@ -123,6 +123,7 @@ namespace GitVersionCore.Tests
         PreReleaseTag: test.19
         PreReleaseTagWithDash: -test.19
         PreReleaseLabel: test
+        PreReleaseLabelWithDash: -test
         PreReleaseNumber: 19
         WeightedPreReleaseNumber: 19
         BuildMetaData:
@@ -148,6 +149,7 @@ namespace GitVersionCore.Tests
         CommitsSinceVersionSource: 19
         CommitsSinceVersionSourcePadded: 0019
         CommitDate: 2015-11-10
+        UncommittedChanges: 0
         ";
 
             var stringBuilder = new StringBuilder();
@@ -172,7 +174,7 @@ namespace GitVersionCore.Tests
 
             var logsMessages = stringBuilder.ToString();
 
-            logsMessages.ShouldContain("Deserializing version variables from cache file", () => logsMessages);
+            logsMessages.ShouldContain("Deserializing version variables from cache file", Case.Insensitive, logsMessages);
         }
 
         [Test]
@@ -185,6 +187,7 @@ namespace GitVersionCore.Tests
         PreReleaseTag: test.19
         PreReleaseTagWithDash: -test.19
         PreReleaseLabel: test
+        PreReleaseLabelWithDash: -test
         PreReleaseNumber: 19
         BuildMetaData:
         BuildMetaDataPadded:
@@ -208,6 +211,7 @@ namespace GitVersionCore.Tests
         CommitsSinceVersionSource: 19
         CommitsSinceVersionSourcePadded: 0019
         CommitDate: 2015-11-10
+        UncommittedChanges: 0
         ";
 
             using var fixture = new EmptyRepositoryFixture();
@@ -234,7 +238,7 @@ namespace GitVersionCore.Tests
             versionVariables.AssemblySemVer.ShouldBe("0.1.0.0");
 
             var cachedDirectoryTimestampAfter = fileSystem.GetLastDirectoryWrite(cacheDirectory);
-            cachedDirectoryTimestampAfter.ShouldBe(cacheDirectoryTimestamp, () => "Cache was updated when override config was set");
+            cachedDirectoryTimestampAfter.ShouldBe(cacheDirectoryTimestamp, "Cache was updated when override config was set");
         }
 
         [Test]
@@ -251,12 +255,12 @@ namespace GitVersionCore.Tests
             var gitVersionOptions = new GitVersionOptions { WorkingDirectory = fixture.RepositoryPath };
 
             fixture.Repository.MakeACommit();
-            var gitVersionCalculator = GetGitVersionCalculator(gitVersionOptions, log, fixture.Repository);
+            var gitVersionCalculator = GetGitVersionCalculator(gitVersionOptions, log, new GitRepository(fixture.Repository));
 
             gitVersionCalculator.CalculateVersionVariables();
 
             var logsMessages = stringBuilder.ToString();
-            logsMessages.ShouldContain("yml not found", () => logsMessages);
+            logsMessages.ShouldContain("yml not found", Case.Insensitive, logsMessages);
         }
 
         [Test]
@@ -269,6 +273,7 @@ namespace GitVersionCore.Tests
         PreReleaseTag: test.19
         PreReleaseTagWithDash: -test.19
         PreReleaseLabel: test
+        PreReleaseLabelWithDash: -test
         PreReleaseNumber: 19
         WeightedPreReleaseNumber: 19
         BuildMetaData:
@@ -294,6 +299,7 @@ namespace GitVersionCore.Tests
         CommitsSinceVersionSource: 19
         CommitsSinceVersionSourcePadded: 0019
         CommitDate: 2015-11-10
+        UncommittedChanges: 0
         ";
 
             using var fixture = new EmptyRepositoryFixture();
@@ -332,6 +338,7 @@ namespace GitVersionCore.Tests
         PreReleaseTag: test.19
         PreReleaseTagWithDash: -test.19
         PreReleaseLabel: test
+        PreReleaseLabelWithDash: -test
         PreReleaseNumber: 19
         WeightedPreReleaseNumber: 19
         BuildMetaData:
@@ -357,6 +364,7 @@ namespace GitVersionCore.Tests
         CommitsSinceVersionSource: 19
         CommitsSinceVersionSourcePadded: 0019
         CommitDate: 2015-11-10
+        UncommittedChanges: 0
         ";
 
             using var fixture = new EmptyRepositoryFixture();
@@ -409,8 +417,8 @@ namespace GitVersionCore.Tests
         }
 
         [Test]
-        [Category("NoMono")]
-        [Description("LibGit2Sharp fails when running under Mono")]
+        [Category(NoMono)]
+        [Description(NoMonoDescription)]
         public void GetProjectRootDirectoryWorkingDirectoryWithWorktree()
         {
             using var fixture = new EmptyRepositoryFixture();
@@ -432,8 +440,8 @@ namespace GitVersionCore.Tests
                 };
 
                 sp = GetServiceProvider(gitVersionOptions);
-
-                gitVersionOptions.ProjectRootDirectory.TrimEnd('/', '\\').ShouldBe(worktreePath);
+                var repositoryInfo = sp.GetService<IGitRepositoryInfo>();
+                repositoryInfo?.ProjectRootDirectory.TrimEnd('/', '\\').ShouldBe(worktreePath);
             }
             finally
             {
@@ -454,9 +462,10 @@ namespace GitVersionCore.Tests
             };
 
             sp = GetServiceProvider(gitVersionOptions);
+            var repositoryInfo = sp.GetService<IGitRepositoryInfo>();
 
             var expectedPath = fixture.RepositoryPath.TrimEnd('/', '\\');
-            gitVersionOptions.ProjectRootDirectory.TrimEnd('/', '\\').ShouldBe(expectedPath);
+            repositoryInfo?.ProjectRootDirectory.TrimEnd('/', '\\').ShouldBe(expectedPath);
         }
 
         [Test]
@@ -475,7 +484,7 @@ namespace GitVersionCore.Tests
                 }
             };
 
-            var gitVersionCalculator = GetGitVersionCalculator(gitVersionOptions, repository: fixture.Repository);
+            var gitVersionCalculator = GetGitVersionCalculator(gitVersionOptions, repository: new GitRepository(fixture.Repository));
             gitPreparer.Prepare();
             gitVersionCalculator.CalculateVersionVariables();
         }
@@ -491,14 +500,15 @@ namespace GitVersionCore.Tests
             };
 
             sp = GetServiceProvider(gitVersionOptions);
+            var repositoryInfo = sp.GetService<IGitRepositoryInfo>();
 
             var expectedPath = Path.Combine(fixture.RepositoryPath, ".git");
-            gitVersionOptions.DotGitDirectory.ShouldBe(expectedPath);
+            repositoryInfo?.DotGitDirectory.ShouldBe(expectedPath);
         }
 
         [Test]
-        [Category("NoMono")]
-        [Description("LibGit2Sharp fails when running under Mono")]
+        [Category(NoMono)]
+        [Description(NoMonoDescription)]
         public void GetDotGitDirectoryWorktree()
         {
             using var fixture = new EmptyRepositoryFixture();
@@ -517,9 +527,10 @@ namespace GitVersionCore.Tests
                 };
 
                 sp = GetServiceProvider(gitVersionOptions);
+                var repositoryInfo = sp.GetService<IGitRepositoryInfo>();
 
                 var expectedPath = Path.Combine(fixture.RepositoryPath, ".git");
-                gitVersionOptions.DotGitDirectory.ShouldBe(expectedPath);
+                repositoryInfo?.DotGitDirectory.ShouldBe(expectedPath);
             }
             finally
             {
@@ -528,8 +539,8 @@ namespace GitVersionCore.Tests
         }
 
         [Test]
-        [Category("NoMono")]
-        [Description("LibGit2Sharp fails when running under Mono")]
+        [Category(NoMono)]
+        [Description(NoMonoDescription)]
         public void CalculateVersionFromWorktreeHead()
         {
             // Setup
@@ -558,7 +569,7 @@ namespace GitVersionCore.Tests
             version.Sha.ShouldBe(commits.First().Sha);
         }
 
-        private IGitVersionTool GetGitVersionCalculator(GitVersionOptions gitVersionOptions, ILog logger = null, IRepository repository = null, IFileSystem fs = null)
+        private IGitVersionCalculateTool GetGitVersionCalculator(GitVersionOptions gitVersionOptions, ILog logger = null, IGitRepository repository = null, IFileSystem fs = null)
         {
             sp = GetServiceProvider(gitVersionOptions, logger, repository, fs);
 
@@ -567,10 +578,10 @@ namespace GitVersionCore.Tests
             gitVersionCache = sp.GetService<IGitVersionCache>();
             gitPreparer = sp.GetService<IGitPreparer>();
 
-            return sp.GetService<IGitVersionTool>();
+            return sp.GetService<IGitVersionCalculateTool>();
         }
 
-        private static IServiceProvider GetServiceProvider(GitVersionOptions gitVersionOptions, ILog log = null, IRepository repository = null, IFileSystem fileSystem = null, IEnvironment environment = null)
+        private static IServiceProvider GetServiceProvider(GitVersionOptions gitVersionOptions, ILog log = null, IGitRepository repository = null, IFileSystem fileSystem = null, IEnvironment environment = null)
         {
             return ConfigureServices(services =>
             {
@@ -578,7 +589,9 @@ namespace GitVersionCore.Tests
                 if (fileSystem != null) services.AddSingleton(fileSystem);
                 if (repository != null) services.AddSingleton(repository);
                 if (environment != null) services.AddSingleton(environment);
-                services.AddSingleton(Options.Create(gitVersionOptions));
+                var options = Options.Create(gitVersionOptions);
+                services.AddSingleton(options);
+                services.AddSingleton<IGitRepositoryInfo>(new GitRepositoryInfo(options));
             });
         }
     }

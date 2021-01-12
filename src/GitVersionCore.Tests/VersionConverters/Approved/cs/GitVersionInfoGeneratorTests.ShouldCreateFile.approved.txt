@@ -34,6 +34,7 @@ static class GitVersionInformation
     public static string PreReleaseTag = "unstable.4";
     public static string PreReleaseTagWithDash = "-unstable.4";
     public static string PreReleaseLabel = "unstable";
+    public static string PreReleaseLabelWithDash = "-unstable";
     public static string PreReleaseNumber = "4";
     public static string WeightedPreReleaseNumber = "4";
     public static string BuildMetaData = "5";
@@ -58,5 +59,6 @@ static class GitVersionInformation
     public static string VersionSourceSha = "versionSourceSha";
     public static string CommitsSinceVersionSource = "5";
     public static string CommitsSinceVersionSourcePadded = "0005";
+    public static string UncommittedChanges = "0";
     public static string CommitDate = "2014-03-06";
 }

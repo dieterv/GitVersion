@@ -33,7 +33,7 @@ namespace GitVersionExe.Tests
             var result = GitVersionHelper.ExecuteIn(fixture.RepositoryPath, arguments: @" /l ""/tmp/path""", logToFile: false);
 
             result.ExitCode.ShouldBe(0);
-            result.Output.ShouldContain(@"""MajorMinorPatch"":""1.2.4""");
+            result.Output.ShouldContain(@"""MajorMinorPatch"": ""1.2.4""");
         }
 
         [Theory]
@@ -91,7 +91,7 @@ namespace GitVersionExe.Tests
 
             exitCode.ShouldNotBe(0);
             var outputString = output.ToString();
-            outputString.ShouldContain($"The working directory '{workingDirectory}' does not exist.", () => outputString);
+            outputString.ShouldContain($"The working directory '{workingDirectory}' does not exist.", Case.Insensitive, outputString);
         }
     }
 }

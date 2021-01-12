@@ -1,53 +1,26 @@
 using System.Collections.Generic;
 using System.Linq;
-using LibGit2Sharp;
+using GitVersion;
 
 namespace GitVersionCore.Tests.Mocks
 {
-    public class MockBranchCollection : BranchCollection, ICollection<Branch>
+    internal class MockBranchCollection : BranchCollection
     {
-        public List<Branch> Branches = new List<Branch>();
+        private List<IBranch> Branches = new List<IBranch>();
 
-        public override IEnumerator<Branch> GetEnumerator()
+        public override IEnumerator<IBranch> GetEnumerator()
         {
             return Branches.GetEnumerator();
         }
 
-        public override Branch this[string friendlyName]
+        public override IBranch this[string friendlyName]
         {
             get { return Branches.FirstOrDefault(x => x.FriendlyName == friendlyName); }
         }
 
-        public void Add(Branch item)
+        public void Add(IBranch item)
         {
             Branches.Add(item);
         }
-
-        public void Clear()
-        {
-            Branches.Clear();
-        }
-
-        public bool Contains(Branch item)
-        {
-            return Branches.Contains(item);
-        }
-
-        public void CopyTo(Branch[] array, int arrayIndex)
-        {
-            Branches.CopyTo(array, arrayIndex);
-        }
-
-        public override void Remove(Branch item)
-        {
-            Branches.Remove(item);
-        }
-        bool ICollection<Branch>.Remove(Branch item)
-        {
-            return Branches.Remove(item);
-        }
-
-        public int Count => Branches.Count;
-        public bool IsReadOnly => false;
     }
 }

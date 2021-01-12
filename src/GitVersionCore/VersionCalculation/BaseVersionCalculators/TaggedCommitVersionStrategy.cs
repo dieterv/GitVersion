@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using GitVersion.Common;
 using GitVersion.Extensions;
-using LibGit2Sharp;
 
 namespace GitVersion.VersionCalculation
 {
@@ -26,25 +25,26 @@ namespace GitVersion.VersionCalculation
             return GetTaggedVersions(Context.CurrentBranch, Context.CurrentCommit.When());
         }
 
-        internal IEnumerable<BaseVersion> GetTaggedVersions(Branch currentBranch, DateTimeOffset? olderThan)
+        internal IEnumerable<BaseVersion> GetTaggedVersions(IBranch currentBranch, DateTimeOffset? olderThan)
         {
             var allTags = repositoryMetadataProvider.GetValidVersionTags(Context.Configuration.GitTagPrefix, olderThan);
 
-            var tagsOnBranch = currentBranch
+            var taggedCommits = currentBranch
                 .Commits
-                .SelectMany(commit => { return allTags.Where(t => IsValidTag(t.Item1, commit)); })
+                .SelectMany(commit => allTags.Where(t => IsValidTag(t.Item1, commit))).ToList();
+
+            var taggedVersions = taggedCommits
                 .Select(t =>
                 {
-                    if (t.Item1.PeeledTarget() is Commit)
-                        return new VersionTaggedCommit(t.Item1.PeeledTarget() as Commit, t.Item2, t.Item1.FriendlyName);
-
-                    return null;
+                    var commit = t.Item1.PeeledTargetCommit();
+                    return commit != null ? new VersionTaggedCommit(commit, t.Item2, t.Item1.FriendlyName) : null;
                 })
-                .Where(a => a != null)
-                .Take(5)
+                .Where(versionTaggedCommit => versionTaggedCommit != null)
+                .Select(versionTaggedCommit => CreateBaseVersion(Context, versionTaggedCommit))
                 .ToList();
 
-            return tagsOnBranch.Select(t => CreateBaseVersion(Context, t));
+            var taggedVersionsOnCurrentCommit = taggedVersions.Where(version => !version.ShouldIncrement).ToList();
+            return taggedVersionsOnCurrentCommit.Any() ? taggedVersionsOnCurrentCommit : taggedVersions;
         }
 
         private BaseVersion CreateBaseVersion(GitVersionContext context, VersionTaggedCommit version)
@@ -59,18 +59,19 @@ namespace GitVersion.VersionCalculation
             return $"Git tag '{version.Tag}'";
         }
 
-        protected virtual bool IsValidTag(Tag tag, Commit commit)
+        protected virtual bool IsValidTag(ITag tag, ICommit commit)
         {
-            return tag.PeeledTarget() == commit;
+            var targetCommit = tag.PeeledTargetCommit();
+            return targetCommit != null && Equals(targetCommit, commit);
         }
 
         protected class VersionTaggedCommit
         {
             public string Tag;
-            public Commit Commit;
+            public ICommit Commit;
             public SemanticVersion SemVer;
 
-            public VersionTaggedCommit(Commit commit, SemanticVersion semVer, string tag)
+            public VersionTaggedCommit(ICommit commit, SemanticVersion semVer, string tag)
             {
                 Tag = tag;
                 Commit = commit;

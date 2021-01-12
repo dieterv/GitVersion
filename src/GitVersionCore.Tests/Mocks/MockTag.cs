@@ -1,25 +1,20 @@
 using LibGit2Sharp;
+using Tag = GitVersion.Tag;
 
 namespace GitVersionCore.Tests.Mocks
 {
-    public class MockTag : Tag
+    internal class MockTag : Tag
     {
-
         public string NameEx;
         public override string FriendlyName => NameEx;
 
-        public GitObject TargetEx;
-        public override GitObject Target => TargetEx;
         public TagAnnotation AnnotationEx;
 
         public MockTag() { }
 
-        public MockTag(string name, GitObject target)
+        public MockTag(string name)
         {
             NameEx = name;
-            TargetEx = target;
         }
-
-        public override TagAnnotation Annotation => AnnotationEx;
     }
 }

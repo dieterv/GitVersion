@@ -36,12 +36,13 @@ namespace GitVersion
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.AddModule(new GitVersionCoreModule());
+                    services.AddModule(new GitVersionLibGit2SharpModule());
                     services.AddModule(new GitVersionExeModule());
 
                     services.AddSingleton(sp =>
                     {
-                        var arguments = sp.GetService<IArgumentParser>().ParseArguments(args);
-                        var gitVersionOptions = arguments.ToOptions();
+                        var arguments = sp.GetService<IArgumentParser>()?.ParseArguments(args);
+                        var gitVersionOptions = arguments?.ToOptions();
                         return Options.Create(gitVersionOptions);
                     });
 

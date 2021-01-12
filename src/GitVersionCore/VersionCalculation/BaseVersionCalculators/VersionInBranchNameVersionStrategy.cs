@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using GitVersion.Common;
 using GitVersion.Configuration;
 using GitVersion.Extensions;
-using LibGit2Sharp;
 
 namespace GitVersion.VersionCalculation
 {
@@ -28,7 +27,7 @@ namespace GitVersion.VersionCalculation
             return GetVersions(tagPrefixRegex, currentBranch);
         }
 
-        internal IEnumerable<BaseVersion> GetVersions(string tagPrefixRegex, Branch currentBranch)
+        internal IEnumerable<BaseVersion> GetVersions(string tagPrefixRegex, IBranch currentBranch)
         {
             if (!Context.FullConfiguration.IsReleaseBranch(currentBranch.NameWithoutOrigin()))
             {

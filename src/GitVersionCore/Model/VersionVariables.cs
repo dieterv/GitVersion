@@ -1,9 +1,14 @@
 using System;
+using System.Buffers;
+using System.Buffers.Text;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using GitVersion.Helpers;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using JetBrains.Annotations;
 using YamlDotNet.Serialization;
 using static GitVersion.Extensions.ObjectExtensions;
 
@@ -12,36 +17,38 @@ namespace GitVersion.OutputVariables
     public class VersionVariables : IEnumerable<KeyValuePair<string, string>>
     {
         public VersionVariables(string major,
-                                string minor,
-                                string patch,
-                                string buildMetaData,
-                                string buildMetaDataPadded,
-                                string fullBuildMetaData,
-                                string branchName,
-                                string escapedBranchName,
-                                string sha,
-                                string shortSha,
-                                string majorMinorPatch,
-                                string semVer,
-                                string legacySemVer,
-                                string legacySemVerPadded,
-                                string fullSemVer,
-                                string assemblySemVer,
-                                string assemblySemFileVer,
-                                string preReleaseTag,
-                                string preReleaseTagWithDash,
-                                string preReleaseLabel,
-                                string preReleaseNumber,
-                                string weightedPreReleaseNumber,
-                                string informationalVersion,
-                                string commitDate,
-                                string nugetVersion,
-                                string nugetVersionV2,
-                                string nugetPreReleaseTag,
-                                string nugetPreReleaseTagV2,
-                                string versionSourceSha,
-                                string commitsSinceVersionSource,
-                                string commitsSinceVersionSourcePadded)
+            string minor,
+            string patch,
+            string buildMetaData,
+            string buildMetaDataPadded,
+            string fullBuildMetaData,
+            string branchName,
+            string escapedBranchName,
+            string sha,
+            string shortSha,
+            string majorMinorPatch,
+            string semVer,
+            string legacySemVer,
+            string legacySemVerPadded,
+            string fullSemVer,
+            string assemblySemVer,
+            string assemblySemFileVer,
+            string preReleaseTag,
+            string preReleaseTagWithDash,
+            string preReleaseLabel,
+            string preReleaseLabelWithDash,
+            string preReleaseNumber,
+            string weightedPreReleaseNumber,
+            string informationalVersion,
+            string commitDate,
+            string nugetVersion,
+            string nugetVersionV2,
+            string nugetPreReleaseTag,
+            string nugetPreReleaseTagV2,
+            string versionSourceSha,
+            string commitsSinceVersionSource,
+            string commitsSinceVersionSourcePadded,
+            string uncommittedChanges)
         {
             Major = major;
             Minor = minor;
@@ -63,6 +70,7 @@ namespace GitVersion.OutputVariables
             PreReleaseTag = preReleaseTag;
             PreReleaseTagWithDash = preReleaseTagWithDash;
             PreReleaseLabel = preReleaseLabel;
+            PreReleaseLabelWithDash = preReleaseLabelWithDash;
             PreReleaseNumber = preReleaseNumber;
             WeightedPreReleaseNumber = weightedPreReleaseNumber;
             InformationalVersion = informationalVersion;
@@ -74,6 +82,7 @@ namespace GitVersion.OutputVariables
             VersionSourceSha = versionSourceSha;
             CommitsSinceVersionSource = commitsSinceVersionSource;
             CommitsSinceVersionSourcePadded = commitsSinceVersionSourcePadded;
+            UncommittedChanges = uncommittedChanges;
         }
 
         public string Major { get; }
@@ -82,6 +91,7 @@ namespace GitVersion.OutputVariables
         public string PreReleaseTag { get; }
         public string PreReleaseTagWithDash { get; }
         public string PreReleaseLabel { get; }
+        public string PreReleaseLabelWithDash { get; }
         public string PreReleaseNumber { get; }
         public string WeightedPreReleaseNumber { get; }
         public string BuildMetaData { get; }
@@ -106,6 +116,8 @@ namespace GitVersion.OutputVariables
         public string VersionSourceSha { get; }
         public string CommitsSinceVersionSource { get; }
         public string CommitsSinceVersionSourcePadded { get; }
+
+        public string UncommittedChanges { get; }
 
         [ReflectionIgnore]
         public static IEnumerable<string> AvailableVariables
@@ -151,6 +163,13 @@ namespace GitVersion.OutputVariables
             return (VersionVariables)Activator.CreateInstance(type, ctorArgs);
         }
 
+        public static VersionVariables FromJson(string json)
+        {
+            var serializeOptions = JsonSerializerOptions();
+            var variablePairs = JsonSerializer.Deserialize<Dictionary<string, string>>(json, serializeOptions);
+            return FromDictionary(variablePairs);
+        }
+
         public static VersionVariables FromFile(string filePath, IFileSystem fileSystem)
         {
             using var stream = fileSystem.OpenRead(filePath);
@@ -180,7 +199,57 @@ namespace GitVersion.OutputVariables
 
         public override string ToString()
         {
-            return JsonSerializer.Serialize(this);
+            var variables = this.GetProperties().ToDictionary(x => x.Key, x => x.Value);
+            var serializeOptions = JsonSerializerOptions();
+
+            return JsonSerializer.Serialize(variables, serializeOptions);
         }
+
+        private static JsonSerializerOptions JsonSerializerOptions()
+        {
+            var serializeOptions = new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                Converters = { new GitVersionStringConverter() }
+            };
+            return serializeOptions;
+        }
+    }
+
+    public class GitVersionStringConverter : JsonConverter<string>
+    {
+        public override bool CanConvert(Type typeToConvert)
+            => typeToConvert == typeof(string);
+
+        public override string Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType != JsonTokenType.Number && typeToConvert == typeof(string))
+                return reader.GetString() ?? "";
+
+            var span = reader.HasValueSequence ? reader.ValueSequence.ToArray() : reader.ValueSpan;
+            if (Utf8Parser.TryParse(span, out long number, out var bytesConsumed) && span.Length == bytesConsumed)
+                return number.ToString();
+
+            var data = reader.GetString();
+
+            throw new InvalidOperationException($"'{data}' is not a correct expected value!")
+            {
+                Source = nameof(GitVersionStringConverter)
+            };
+        }
+
+        public override void Write(Utf8JsonWriter writer, [CanBeNull] string value, JsonSerializerOptions options)
+        {
+            value ??= string.Empty;
+            if (NotAPaddedNumber(value) && int.TryParse(value, out var number))
+                writer.WriteNumberValue(number);
+            else
+                writer.WriteStringValue(value);
+        }
+
+        public override bool HandleNull => true;
+
+        private static bool NotAPaddedNumber(string value) => value != null && (value == "0" || !value.StartsWith("0"));
     }
 }

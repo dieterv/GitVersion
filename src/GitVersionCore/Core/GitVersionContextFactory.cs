@@ -2,7 +2,6 @@ using System;
 using GitVersion.Common;
 using GitVersion.Configuration;
 using GitVersion.Extensions;
-using LibGit2Sharp;
 using Microsoft.Extensions.Options;
 
 namespace GitVersion
@@ -28,7 +27,7 @@ namespace GitVersion
             return Init(targetBranch, gitVersionOptions.RepositoryInfo.CommitId, gitVersionOptions.Settings.OnlyTrackedBranches);
         }
 
-        private GitVersionContext Init(Branch currentBranch, string commitId = null, bool onlyTrackedBranches = false)
+        private GitVersionContext Init(IBranch currentBranch, string commitId = null, bool onlyTrackedBranches = false)
         {
             if (currentBranch == null)
                 throw new InvalidOperationException("Need a branch to operate on");
@@ -46,8 +45,9 @@ namespace GitVersion
             var currentBranchConfig = branchConfigurationCalculator.GetBranchConfiguration(currentBranch, currentCommit, configuration);
             var effectiveConfiguration = configuration.CalculateEffectiveConfiguration(currentBranchConfig);
             var currentCommitTaggedVersion = repositoryMetadataProvider.GetCurrentCommitTaggedVersion(currentCommit, effectiveConfiguration);
+            var numberOfUncommittedChanges = repositoryMetadataProvider.GetNumberOfUncommittedChanges();
 
-            return new GitVersionContext(currentBranch, currentCommit, configuration, effectiveConfiguration, currentCommitTaggedVersion);
+            return new GitVersionContext(currentBranch, currentCommit, configuration, effectiveConfiguration, currentCommitTaggedVersion, numberOfUncommittedChanges);
         }
     }
 }

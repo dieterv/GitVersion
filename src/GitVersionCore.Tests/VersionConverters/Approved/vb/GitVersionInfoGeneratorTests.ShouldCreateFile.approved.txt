@@ -37,6 +37,7 @@ Namespace Global
         Public Shared PreReleaseTag As String = "unstable.4"
         Public Shared PreReleaseTagWithDash As String = "-unstable.4"
         Public Shared PreReleaseLabel As String = "unstable"
+        Public Shared PreReleaseLabelWithDash As String = "-unstable"
         Public Shared PreReleaseNumber As String = "4"
         Public Shared WeightedPreReleaseNumber As String = "4"
         Public Shared BuildMetaData As String = "5"
@@ -61,6 +62,7 @@ Namespace Global
         Public Shared VersionSourceSha As String = "versionSourceSha"
         Public Shared CommitsSinceVersionSource As String = "5"
         Public Shared CommitsSinceVersionSourcePadded As String = "0005"
+        Public Shared UncommittedChanges As String = "0"
         Public Shared CommitDate As String = "2014-03-06"
     End Class
 

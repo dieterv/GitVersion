@@ -3,7 +3,6 @@ using GitVersion;
 using GitVersion.Configuration;
 using GitVersion.Extensions;
 using GitVersion.Model.Configuration;
-using LibGit2Sharp;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -13,6 +12,7 @@ namespace GitVersionCore.Tests.Helpers
     {
         protected const string NoMonoDescription = "Won't run on Mono due to source information not being available for ShouldMatchApproved.";
         protected const string NoMono = "NoMono";
+        protected const string NoNet48 = "NoNet48";
 
         protected static IServiceProvider ConfigureServices(Action<IServiceCollection> overrideServices = null)
         {
@@ -24,7 +24,7 @@ namespace GitVersionCore.Tests.Helpers
             return services.BuildServiceProvider();
         }
 
-        protected static IServiceProvider BuildServiceProvider(string workingDirectory, IRepository repository, string branch, Config config = null)
+        protected static IServiceProvider BuildServiceProvider(string workingDirectory, IGitRepository repository, string branch, Config config = null)
         {
             config ??= new ConfigurationBuilder().Build();
             var options = Options.Create(new GitVersionOptions

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using GitVersion.Common;
 using GitVersion.Configuration;
-using LibGit2Sharp;
 
 namespace GitVersion.VersionCalculation
 {
@@ -81,13 +80,13 @@ namespace GitVersion.VersionCalculation
             return new BaseVersion[0];
         }
 
-        private IEnumerable<BaseVersion> GetReleaseVersion(GitVersionContext context, Branch releaseBranch)
+        private IEnumerable<BaseVersion> GetReleaseVersion(GitVersionContext context, IBranch releaseBranch)
         {
             var tagPrefixRegex = context.Configuration.GitTagPrefix;
 
             // Find the commit where the child branch was created.
             var baseSource = repositoryMetadataProvider.FindMergeBase(releaseBranch, context.CurrentBranch);
-            if (baseSource == context.CurrentCommit)
+            if (Equals(baseSource, context.CurrentCommit))
             {
                 // Ignore the branch if it has no commits.
                 return new BaseVersion[0];
